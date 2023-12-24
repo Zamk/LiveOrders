@@ -16,29 +16,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+ConnectionOptions connection;
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/connection", (ConnectionOptions options) =>
     {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
+        if (string.IsNullOrEmpty(options.ApiKey))
+            return Task.FromResult(Results.BadRequest("ApiKey must be not null or empty!"));
+        if (options.ApiKey is "ApiKey" or "string")
+            return Task.FromResult(Results.BadRequest("Incorrect ApiKey!"));
+        connection = options;
+
+        // run background task to push orders from tables to cache
+        
+        return Task.FromResult(Results.NoContent());
     })
-    .WithName("GetWeatherForecast")
+    .WithName("PostConnectionOptions")
     .WithOpenApi();
+
+app.MapGet("/orders", () =>
+    {
+        // return orders from cache
+    });
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+record ConnectionOptions(string ApiKey, string OrgnizationId, string TerminalGroupId);
