@@ -1,0 +1,6 @@
+@LiveOrders.Backend_HostAddress = http://localhost:5120
+
+GET {{LiveOrders.Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
