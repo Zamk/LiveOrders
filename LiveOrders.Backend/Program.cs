@@ -1,3 +1,5 @@
+using LiveOrders.Backend;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -16,28 +18,43 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-ConnectionOptions connection;
+ConnectionOptions connection = null;
+ExternalClient client = null;
+string uri = "https://api-ru.iiko.services/api/1/";
+
 
 app.MapPost("/connection", (ConnectionOptions options) =>
     {
-        if (string.IsNullOrEmpty(options.ApiKey))
-            return Task.FromResult(Results.BadRequest("ApiKey must be not null or empty!"));
-        if (options.ApiKey is "ApiKey" or "string")
-            return Task.FromResult(Results.BadRequest("Incorrect ApiKey!"));
         connection = options;
 
         // run background task to push orders from tables to cache
+
+        client = new ExternalClient(TimeSpan.FromSeconds(10), uri, connection.ApiKey);
         
         return Task.FromResult(Results.NoContent());
     })
     .WithName("PostConnectionOptions")
     .WithOpenApi();
 
+app.MapGet("/tables", () =>
+    {
+        if (connection == null || client == null)
+            throw new Exception();
+        
+        //var result = client.GetTables(connection.TerminalGroupId).Result;
+        client.GetTablesTest();
+        return Results.Ok();
+    })
+    .WithName("GetTables")
+    .WithOpenApi();
+
 app.MapGet("/orders", () =>
     {
         // return orders from cache
-    });
+    })
+    .WithName("GetOrders")
+    .WithOpenApi();
 
 app.Run();
 
-record ConnectionOptions(string ApiKey, string OrgnizationId, string TerminalGroupId);
+record ConnectionOptions(string ApiKey, Guid OrgnizationId, Guid TerminalGroupId);
